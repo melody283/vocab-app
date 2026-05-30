@@ -1,0 +1,16 @@
+{
+  "name": "vocab-app",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Static HTML, no build needed'",
+    "cap:add:ios": "npx @capacitor/cli add ios",
+    "cap:add:android": "npx @capacitor/cli add android",
+    "cap:sync": "npx @capacitor/cli sync"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/ios": "^5.0.0",
+    "@capacitor/android": "^5.0.0"
+  }
+}

@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>背单词</title>
+<style>
+:root{--pri:#4A90D9;--pri2:#7CB342;--green:#4CAF50;--red:#E53935;--bg:#f5f5f5;--card:#fff;--text:#333;--sub:#888}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);max-width:600px;margin:0 auto;min-height:100vh}
+.screen{display:none;padding:0 0 80px}.screen.active{display:block}
+header{background:var(--pri);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+header button{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;padding:4px 8px}
+header h1{font-size:17px;flex:1}
+.card{background:var(--card);border-radius:14px;padding:16px;margin:8px 12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;font-size:16px;cursor:pointer;font-weight:600;text-align:center;transition:.15s}
+.btn:active{opacity:.8}
+.btn-pri{background:var(--pri);color:#fff}
+.btn-out{background:none;border:2px solid var(--pri);color:var(--pri)}
+.btn-green{background:var(--green);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-sm{width:auto;display:inline-block;padding:8px 16px;font-size:13px;border-radius:8px}
+.col{display:flex;gap:8px}.col>*{flex:1}
+.mt{margin-top:14px}.mb{margin-bottom:8px}.tc{text-align:center}
+.flash-card{background:var(--card);border-radius:20px;padding:40px 24px;margin:20px 12px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.1);cursor:pointer;user-select:none;position:relative;transition:transform .3s}
+.flash-card.flipped{transform:rotateY(0)}
+.flash-card .word{font-size:36px;font-weight:700;color:var(--pri);margin-bottom:8px}
+.flash-card .phonetic{font-size:16px;color:var(--sub);margin-bottom:20px}
+.flash-card .meaning{font-size:24px;color:var(--text);font-weight:600;margin-bottom:12px}
+.flash-card .sentences{font-size:13px;color:var(--sub);margin-bottom:8px;line-height:1.6}
+.flash-card .root-info{font-size:12px;color:var(--sub);background:#f0f0f0;padding:8px 12px;border-radius:8px;margin-top:8px}
+.flash-card .tap-hint{font-size:13px;color:var(--sub);position:absolute;bottom:16px}
+.speak-btn{width:48px;height:48px;border-radius:50%;background:var(--pri);color:#fff;border:none;font-size:22px;cursor:pointer;margin:8px}
+.speak-btn:active{background:#357ABD}
+.progress-bar{height:6px;background:#e0e0e0;border-radius:3px;margin:8px 16px;overflow:hidden}
+.progress-bar .fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+.stat-num{font-size:48px;font-weight:700;color:var(--pri);text-align:center}
+.stat-label{font-size:13px;color:var(--sub);text-align:center}
+.opt-btn{display:block;width:100%;padding:14px;margin:6px 0;border-radius:12px;border:2px solid #e0e0e0;background:var(--card);font-size:15px;cursor:pointer;text-align:left;transition:.15s}
+.opt-btn:active{background:#f0f0f0}
+.opt-btn.correct{border-color:var(--green);background:#e8f5e9;color:#2e7d32}
+.opt-btn.wrong{border-color:var(--red);background:#ffebee;color:#c62828}
+.opt-btn .opt-letter{display:inline-block;width:24px;height:24px;border-radius:12px;background:#e0e0e0;text-align:center;line-height:24px;font-size:12px;font-weight:700;margin-right:8px}
+.opt-btn.correct .opt-letter{background:var(--green);color:#fff}
+.opt-btn.wrong .opt-letter{background:var(--red);color:#fff}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:30;align-items:flex-end;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:600px;max-height:85vh;overflow-y:auto}
+.modal h2{font-size:17px;margin-bottom:14px}
+input,textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit}
+textarea{min-height:60px;resize:vertical}
+label{font-size:13px;color:var(--sub);display:block;margin:10px 0 4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 14px;border-radius:16px;border:1.5px solid #ddd;font-size:12px;cursor:pointer;background:none}
+.chip.on{border-color:var(--pri);background:var(--pri);color:#fff}
+hr{border:none;border-top:1px solid #eee;margin:10px 0}
+.tag{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;display:inline-block}
+.tag-new{background:#e3f2fd;color:#1565c0}.tag-learn{background:#fff3e0;color:#e65100}
+.tag-review{background:#f3e5f5;color:#7b1fa2}.tag-done{background:#e8f5e9;color:#2e7d32}
+.switch{width:42px;height:24px;background:#ccc;border-radius:12px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.switch.on{background:var(--pri)}
+.switch::after{content:'';width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s}
+.switch.on::after{left:20px}
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="sHome" class="screen active">
+  <header><h1>📚 背单词</h1></header>
+  <div class="card tc">
+    <div class="stat-num" id="homeDue">0</div>
+    <div class="stat-label">今日待复习</div>
+  </div>
+  <div class="progress-bar"><div class="fill" id="homeProgress" style="width:0%"></div></div>
+  <div style="padding:0 12px;text-align:center;font-size:12px;color:var(--sub)" id="homePct">今日已完成 0 / 0</div>
+  <div class="col" style="padding:12px">
+    <button class="btn btn-pri" onclick="startReview()">🔄 开始复习</button>
+    <button class="btn btn-out" onclick="startNewWords()">🆕 学习新词</button>
+  </div>
+  <div class="card">
+    <div onclick="goScreen('sQuiz');renderQuiz()" style="cursor:pointer;padding:8px 0">📝 选择题模式</div>
+    <hr>
+    <div onclick="goScreen('sDeck');renderDeck()" style="cursor:pointer;padding:8px 0">📦 词库管理</div>
+    <hr>
+    <div onclick="goScreen('sStats');renderStats()" style="cursor:pointer;padding:8px 0">📊 学习统计</div>
+  </div>
+  <div style="text-align:center;font-size:13px;color:var(--sub);padding:8px">🔥 连续打卡 <b id="homeStreak">0</b> 天</div>
+</div>
+
+<!-- FLASHCARD REVIEW -->
+<div id="sFlash" class="screen">
+  <header>
+    <button onclick="endSession()">←</button>
+    <h1 id="flashTitle">复习</h1>
+  </header>
+  <div class="progress-bar"><div class="fill" id="flashProgress" style="width:0%"></div></div>
+  <div style="text-align:center;font-size:12px;color:var(--sub);padding:4px" id="flashCount">0 / 0</div>
+  <div id="flashArea"></div>
+</div>
+
+<!-- MULTIPLE CHOICE -->
+<div id="sQuiz" class="screen">
+  <header>
+    <button onclick="goScreen('sHome')">←</button>
+    <h1>选择题</h1>
+  </header>
+  <div class="progress-bar"><div class="fill" id="quizPBar" style="width:0%"></div></div>
+  <div style="text-align:center;font-size:12px;color:var(--sub);padding:4px" id="quizCount">0 / 0</div>
+  <div id="quizArea" style="padding:12px"></div>
+</div>
+
+<!-- DECK MANAGEMENT -->
+<div id="sDeck" class="screen">
+  <header>
+    <button onclick="goScreen('sHome')">←</button>
+    <h1>词库管理</h1>
+  </header>
+  <div style="padding:12px" id="deckArea"></div>
+  <button class="btn btn-pri" style="position:fixed;bottom:20px;left:12px;right:12px;width:auto;z-index:5" onclick="showAddWord()">+ 添加单词</button>
+</div>
+
+<!-- STATS -->
+<div id="sStats" class="screen">
+  <header>
+    <button onclick="goScreen('sHome')">←</button>
+    <h1>学习统计</h1>
+  </header>
+  <div style="padding:12px" id="statsArea"></div>
+</div>
+
+<!-- MODAL: Add/Edit Word -->
+<div class="modal-overlay" id="mdWord">
+  <div class="modal">
+    <h2 id="mdWordTitle">添加单词</h2>
+    <label>单词</label><input id="fwWord" placeholder="如 abandon">
+    <label>音标</label><input id="fwPhonetic" placeholder="如 /əˈbændən/">
+    <label>中文释义</label><input id="fwMeaning" placeholder="如 v. 抛弃；放弃">
+    <label>例句（每行一条）</label><textarea id="fwSentences" placeholder="输入例句，一行一条"></textarea>
+    <label>词根词缀</label><input id="fwRoot" placeholder="如 a-(离开) + bandon(控制) → 抛弃">
+    <label>标签</label>
+    <div class="chips" id="fwTags">
+      <div class="chip on" data-t="CET4">CET4</div>
+      <div class="chip" data-t="高频">高频</div>
+      <div class="chip" data-t="CET6">CET6</div>
+      <div class="chip" data-t="考研">考研</div>
+    </div>
+    <div class="col mt">
+      <button class="btn btn-pri" onclick="doSaveWord()">保存</button>
+      <button class="btn btn-out" onclick="hideModal('mdWord')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Import -->
+<div class="modal-overlay" id="mdImport">
+  <div class="modal">
+    <h2>导入单词</h2>
+    <p style="font-size:13px;color:var(--sub)">每行一个单词，格式：<br>单词 | 音标 | 释义 | 例句 | 词根<br>用 | 分隔，至少填单词和释义</p>
+    <textarea id="importText" rows="6" placeholder="abandon | /əˈbændən/ | v.抛弃 | He abandoned the plan. | a-离开+bandon控制"></textarea>
+    <input type="file" id="importFile" accept=".txt,.csv,.docx" style="display:none">
+    <div class="col mt">
+      <button class="btn btn-out" onclick="document.getElementById('importFile').click()">从文件导入</button>
+      <button class="btn btn-pri" onclick="doImport()">导入文本</button>
+    </div>
+    <button class="btn btn-out mt" onclick="hideModal('mdImport')">取消</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CET4 HIGH-FREQUENCY WORD DATA (~100 core words with full data)
+// ============================================================
+var CET4_WORDS = [
+{w:"abandon",p:"/əˈbændən/",m:"v. 抛弃；放弃",s:["He abandoned his plan to travel.","The child was abandoned by his parents."],r:"a-(离开)+bandon(控制)→放弃控制→抛弃",t:["CET4","高频"]},
+{w:"ability",p:"/əˈbɪləti/",m:"n. 能力；才能",s:["She has the ability to learn quickly.","His ability as a leader is remarkable."],r:"",t:["CET4","高频"]},
+{w:"abroad",p:"/əˈbrɔːd/",m:"ad. 到国外；在国外",s:["He has been abroad many times.","She plans to study abroad next year."],r:"a-(在...)+broad(宽广)→在广阔的世界→国外",t:["CET4","高频"]},
+{w:"absence",p:"/ˈæbsəns/",m:"n. 缺席；不在；缺乏",s:["His absence from the meeting was noticed.","In the absence of evidence, the case was dismissed."],r:"ab-(离开)+sence(存在)→离开→缺席",t:["CET4","高频"]},
+{w:"absolute",p:"/ˈæbsəluːt/",m:"a. 绝对的；完全的",s:["I have absolute confidence in her.","The ruler had absolute power."],r:"ab-(离开)+solu(松)+te→完全松开→无限制的→绝对的",t:["CET4","高频"]},
+{w:"absorb",p:"/əbˈzɔːrb/",m:"v. 吸收；吸引(注意)",s:["Plants absorb water from the soil.","He was absorbed in his book."],r:"ab-(离开)+sorb(吸)→吸走→吸收",t:["CET4","高频"]},
+{w:"abstract",p:"/ˈæbstrækt/",m:"a. 抽象的 n. 摘要",s:["The idea is too abstract to understand.","Please write an abstract of your paper."],r:"abs-(离开)+tract(拉)→拉开→抽取→抽象的",t:["CET4","高频"]},
+{w:"abundant",p:"/əˈbʌndənt/",m:"a. 丰富的；充裕的",s:["The region has abundant natural resources.","We had an abundant harvest this year."],r:"ab-(加强)+und(波浪)+ant→波浪般涌来→丰富的",t:["CET4","高频"]},
+{w:"academic",p:"/ˌækəˈdemɪk/",m:"a. 学术的；学院的",s:["She has a strong academic background.","Academic research requires patience."],r:"",t:["CET4","高频"]},
+{w:"accelerate",p:"/əkˈseləreɪt/",m:"v. 加速；促进",s:["The car accelerated quickly.","We need to accelerate the process."],r:"ac-(加强)+celer(快)+ate→使更快→加速",t:["CET4","高频"]},
+{w:"access",p:"/ˈækses/",m:"n. 进入；通道；使用权 v. 访问",s:["Students have access to the library.","You can access the data online."],r:"ac-(去)+cess(走)→走过去→进入",t:["CET4","高频"]},
+{w:"accommodate",p:"/əˈkɒmədeɪt/",m:"v. 容纳；提供住宿；适应",s:["The hotel can accommodate 200 guests.","We must accommodate to new conditions."],r:"ac+com(共同)+mod(方式)+ate→用合适的方式→容纳",t:["CET4","高频"]},
+{w:"accompany",p:"/əˈkʌmpəni/",m:"v. 陪伴；伴随；伴奏",s:["She accompanied me to the station.","Lightning accompanied the thunder."],r:"ac-(去)+company(伙伴)→去做伙伴→陪伴",t:["CET4","高频"]},
+{w:"accomplish",p:"/əˈkɒmplɪʃ/",m:"v. 完成；实现",s:["He accomplished his goal in just three months.","What did you accomplish today?"],r:"ac+com(完全)+pli(填满)+sh→完全填满→完成",t:["CET4","高频"]},
+{w:"account",p:"/əˈkaʊnt/",m:"n. 账户；说明 v. 解释(account for)",s:["I opened a bank account.","How do you account for the delay?"],r:"ac-(去)+count(计算)→去计算→账户；说明",t:["CET4","高频"]},
+{w:"accumulate",p:"/əˈkjuːmjəleɪt/",m:"v. 积累；积聚",s:["Dust accumulated on the shelves.","He accumulated a large fortune."],r:"ac+comul(堆积)+ate→堆积起来→积累",t:["CET4","高频"]},
+{w:"accurate",p:"/ˈækjərət/",m:"a. 准确的；精确的",s:["The report needs to be accurate.","She gave an accurate description of the event."],r:"ac-(去)+cur(关心)+ate→用心去做→准确的",t:["CET4","高频"]},
+{w:"achieve",p:"/əˈtʃiːv/",m:"v. 达到；取得；实现",s:["She achieved her dream of becoming a doctor.","Hard work achieves success."],r:"a-(到)+chieve(头)→到头→完成→实现",t:["CET4","高频"]},
+{w:"acknowledge",p:"/əkˈnɒlɪdʒ/",m:"v. 承认；确认(收到)；感谢",s:["He acknowledged his mistake.","Please acknowledge receipt of the letter."],r:"ac+knowledge(知识)→使知道→承认",t:["CET4","高频"]},
+{w:"acquire",p:"/əˈkwaɪər/",m:"v. 获得；学到；习得",s:["She acquired a good knowledge of English.","How did you acquire this skill?"],r:"ac-(去)+quire(追求)→去追求→获得",t:["CET4","高频"]},
+{w:"adapt",p:"/əˈdæpt/",m:"v. 适应；改编",s:["He adapted quickly to the new job.","The novel was adapted into a film."],r:"ad-(去)+apt(适合)→使适合→适应",t:["CET4","高频"]},
+{w:"adequate",p:"/ˈædɪkwət/",m:"a. 足够的；适当的",s:["The supply is not adequate to the demand.","Do you have adequate evidence?"],r:"ad-(去)+equ(相等)+ate→与所需相等→足够的",t:["CET4","高频"]},
+{w:"adjust",p:"/əˈdʒʌst/",m:"v. 调整；适应",s:["You can adjust the seat height.","He adjusted himself to the new environment."],r:"ad-(去)+just(正确)→使正确→调整",t:["CET4","高频"]},
+{w:"administration",p:"/ədˌmɪnɪˈstreɪʃn/",m:"n. 管理；行政；政府",s:["The school administration made the decision.","He works in business administration."],r:"ad+ministr(服务)+ation→服务→管理",t:["CET4","高频"]},
+{w:"admission",p:"/ədˈmɪʃn/",m:"n. 准许进入；承认；入场费",s:["He gained admission to the university.","Admission is free on Sundays."],r:"ad-(去)+miss(送)+ion→送进去→准许进入",t:["CET4","高频"]},
+{w:"adopt",p:"/əˈdɒpt/",m:"v. 采用；收养；通过(决议)",s:["They adopted a new method.","The couple adopted a baby girl."],r:"ad-(去)+opt(选择)→去选择→采用",t:["CET4","高频"]},
+{w:"advance",p:"/ədˈvɑːns/",m:"v./n. 前进；进步；提前",s:["Technology has advanced rapidly.","You need to pay in advance."],r:"ad-(向前)+vance(来)→向前来→前进",t:["CET4","高频"]},
+{w:"advantage",p:"/ədˈvɑːntɪdʒ/",m:"n. 优势；有利条件",s:["This plan has many advantages.","She took advantage of the opportunity."],r:"advant(前面)+age→在前面→优势",t:["CET4","高频"]},
+{w:"advertise",p:"/ˈædvətaɪz/",m:"v. 做广告；宣传",s:["They advertised the product on TV.","The job was advertised online."],r:"ad-(向)+vert(转)+ise→使转向→引起注意→做广告",t:["CET4","高频"]},
+{w:"affair",p:"/əˈfeər/",m:"n. 事件；事务；私事",s:["It's a complicated affair.","Foreign affairs are important."],r:"af-(去)+fair(做)→去做的事→事务",t:["CET4","高频"]},
+{w:"affect",p:"/əˈfekt/",m:"v. 影响；感动",s:["The weather affects our mood.","Her story deeply affected me."],r:"af-(去)+fect(做)→去做→产生影响",t:["CET4","高频"]},
+{w:"afford",p:"/əˈfɔːrd/",m:"v. 负担得起；提供",s:["I can't afford a new car.","It affords great pleasure to help others."],r:"af-(去)+ford(向前)→向前推进→有能力→负担得起",t:["CET4","高频"]},
+{w:"aggressive",p:"/əˈɡresɪv/",m:"a. 侵略的；好斗的；积极的",s:["The dog was aggressive toward strangers.","We need an aggressive marketing strategy."],r:"ag-(去)+gress(走)+ive→向前走→侵略的",t:["CET4","高频"]},
+{w:"agreement",p:"/əˈɡriːmənt/",m:"n. 协议；同意；一致",s:["They signed a trade agreement.","We are in agreement on this point."],r:"",t:["CET4","高频"]},
+{w:"agriculture",p:"/ˈæɡrɪkʌltʃər/",m:"n. 农业；农学",s:["Agriculture is vital to the economy.","Modern agriculture uses technology."],r:"agri(田地)+cult(耕种)+ure→耕种田地→农业",t:["CET4","高频"]},
+{w:"aid",p:"/eɪd/",m:"n./v. 援助；帮助",s:["They provided aid to the victims.","This medicine aids digestion."],r:"",t:["CET4","高频"]},
+{w:"aim",p:"/eɪm/",m:"n. 目标 v. 瞄准；旨在",s:["What is your aim in life?","We aim to finish by Friday."],r:"",t:["CET4","高频"]},
+{w:"alarm",p:"/əˈlɑːrm/",m:"n. 警报；闹钟；惊恐",s:["The fire alarm went off.","She looked at him in alarm."],r:"al-(去)+arm(武器)→拿起武器→警报",t:["CET4","高频"]},
+{w:"alcohol",p:"/ˈælkəhɒl/",m:"n. 酒精；含酒精饮料",s:["He never drinks alcohol.","Alcohol is harmful to health."],r:"",t:["CET4","高频"]},
+{w:"alternative",p:"/ɔːlˈtɜːrnətɪv/",m:"n. 替代选择 a. 替代的",s:["We have no alternative but to wait.","Alternative energy sources are important."],r:"altern(交替)+ative→交替的→替代的",t:["CET4","高频"]},
+{w:"amaze",p:"/əˈmeɪz/",m:"v. 使惊奇；使惊愕",s:["Her performance amazed everyone.","I was amazed by the view."],r:"a-(加强)+maze(迷)→让人迷糊→使惊奇",t:["CET4","高频"]},
+{w:"ambition",p:"/æmˈbɪʃn/",m:"n. 雄心；野心",s:["Her ambition is to become a CEO.","He has great ambition."],r:"amb-(走)+it(走)+ion→四处走动(拉选票)→野心",t:["CET4","高频"]},
+{w:"amount",p:"/əˈmaʊnt/",m:"n. 数量 v. 总计(amount to)",s:["A large amount of money was spent.","It amounts to a serious problem."],r:"a-(去)+mount(山)→堆积如山→数量",t:["CET4","高频"]},
+{w:"analyze",p:"/ˈænəlaɪz/",m:"v. 分析；解析",s:["We need to analyze the data carefully.","She analyzed the problem step by step."],r:"ana-(分开)+lyze(松开)→分解开来→分析",t:["CET4","高频"]},
+{w:"annual",p:"/ˈænjuəl/",m:"a. 每年的；年度的 n. 年刊",s:["The annual meeting is next week.","The company's annual report was published."],r:"ann(年)+ual→一年的→每年的",t:["CET4","高频"]},
+{w:"anxiety",p:"/æŋˈzaɪəti/",m:"n. 焦虑；忧虑；渴望",s:["He felt great anxiety before the exam.","Her anxiety for knowledge is strong."],r:"",t:["CET4","高频"]},
+{w:"apparent",p:"/əˈpærənt/",m:"a. 明显的；表面上的",s:["It was apparent that he was lying.","The apparent cause was a short circuit."],r:"ap+par(出现)+ent→出现→明显的",t:["CET4","高频"]},
+{w:"appeal",p:"/əˈpiːl/",m:"v./n. 呼吁；吸引；上诉",s:["They appealed for help.","The idea appeals to me."],r:"ap-(去)+peal(推)→去推动→呼吁",t:["CET4","高频"]},
+{w:"appetite",p:"/ˈæpɪtaɪt/",m:"n. 食欲；胃口；欲望",s:["I have a good appetite today.","He has an appetite for adventure."],r:"ap-(加强)+pet(追求)+ite→追求→欲望→食欲",t:["CET4","高频"]},
+{w:"apply",p:"/əˈplaɪ/",m:"v. 应用；申请；适用",s:["You should apply for the job.","This rule applies to everyone."],r:"ap-(去)+ply(折叠)→折叠过去→贴合→应用",t:["CET4","高频"]},
+{w:"approach",p:"/əˈprəʊtʃ/",m:"v. 接近 n. 方法；途径",s:["Spring is approaching.","We need a new approach to the problem."],r:"ap-(去)+proach(近)→去靠近→接近",t:["CET4","高频"]},
+{w:"appropriate",p:"/əˈprəʊpriət/",m:"a. 适当的；合适的",s:["That is not appropriate behavior.","Choose an appropriate gift."],r:"ap+propri(自己的)+ate→变成自己的→适当的",t:["CET4","高频"]},
+{w:"approve",p:"/əˈpruːv/",m:"v. 批准；赞成",s:["The boss approved my plan.","I don't approve of his behavior."],r:"ap-(去)+prove(证明)→证明是好的→批准",t:["CET4","高频"]},
+{w:"arise",p:"/əˈraɪz/",m:"v. 出现；产生；起身",s:["A new problem has arisen.","If the need arises, call me."],r:"a-(向上)+rise(升起)→升起来→出现",t:["CET4","高频"]},
+{w:"arouse",p:"/əˈraʊz/",m:"v. 引起；唤醒；激发",s:["The music aroused strong emotions.","He was aroused from sleep by the noise."],r:"a-(加强)+rouse(唤醒)→唤醒→激发",t:["CET4","高频"]},
+{w:"artificial",p:"/ˌɑːrtɪˈfɪʃl/",m:"a. 人工的；人造的；虚假的",s:["Artificial intelligence is advancing rapidly.","The flowers are artificial but look real."],r:"art(艺术)+fic(做)+ial→人工做出来的→人造的",t:["CET4","高频"]},
+{w:"aspect",p:"/ˈæspekt/",m:"n. 方面；层面；外观",s:["We considered every aspect of the problem.","The house has a southern aspect."],r:"a-(去)+spect(看)→去看→看到的一面→方面",t:["CET4","高频"]},
+{w:"assemble",p:"/əˈsembl/",m:"v. 集合；组装；装配",s:["The students assembled in the hall.","He assembled the furniture himself."],r:"as-(去)+semble(一起)→到一起→集合；组装",t:["CET4","高频"]},
+{w:"assess",p:"/əˈses/",m:"v. 评估；评价；评定",s:["The damage was assessed at $1000.","Teachers assess students' progress."],r:"as-(在)+sess(坐)→坐在旁边→评定",t:["CET4","高频"]},
+{w:"assign",p:"/əˈsaɪn/",m:"v. 分配；指派；指定",s:["The teacher assigned homework.","He was assigned to the sales team."],r:"as-(去)+sign(标记)→标记出来→分配",t:["CET4","高频"]},
+{w:"assist",p:"/əˈsɪst/",m:"v. 帮助；协助",s:["She assisted me with the project.","Two nurses assisted the doctor."],r:"as-(在旁)+sist(站)→在旁边站着→协助",t:["CET4","高频"]},
+{w:"associate",p:"/əˈsəʊʃieɪt/",m:"v. 联系；关联 n. 同事",s:["I always associate summer with holidays.","He is a business associate of mine."],r:"as-(去)+soci(同伴)+ate→结成同伴→联系",t:["CET4","高频"]},
+{w:"atmosphere",p:"/ˈætməsfɪər/",m:"n. 大气；气氛；氛围",s:["The atmosphere was tense.","Earth's atmosphere protects us."],r:"atmo(蒸汽)+sphere(球体)→蒸汽球体→大气",t:["CET4","高频"]},
+{w:"attach",p:"/əˈtætʃ/",m:"v. 附上；系上；附加",s:["Please attach your photo to the form.","She is deeply attached to her family."],r:"at-(去)+tach(钉)→钉上去→附上",t:["CET4","高频"]},
+{w:"attempt",p:"/əˈtempt/",m:"v./n. 尝试；企图",s:["He attempted to climb the mountain.","It was a bold attempt."],r:"at-(去)+tempt(尝试)→去尝试",t:["CET4","高频"]},
+{w:"attend",p:"/əˈtend/",m:"v. 参加；出席；注意",s:["Did you attend the meeting?","Please attend to what I'm saying."],r:"at-(去)+tend(伸展)→伸向→关注→出席",t:["CET4","高频"]},
+{w:"attitude",p:"/ˈætɪtjuːd/",m:"n. 态度；看法；姿势",s:["She has a positive attitude toward life.","His attitude surprised everyone."],r:"",t:["CET4","高频"]},
+{w:"attract",p:"/əˈtrækt/",m:"v. 吸引；引起(注意)",s:["The exhibition attracted many visitors.","He was attracted by her smile."],r:"at-(去)+tract(拉)→拉过去→吸引",t:["CET4","高频"]},
+{w:"authority",p:"/ɔːˈθɒrəti/",m:"n. 权威；当局；权力",s:["He is an authority on ancient history.","The local authority approved the plan."],r:"author(创造者)+ity→创造者→权威",t:["CET4","高频"]},
+{w:"available",p:"/əˈveɪləbl/",m:"a. 可用的；可获得的；有空的",s:["Is the manager available?","This book is available online."],r:"a-(去)+vail(价值)+able→有价值的→可用的",t:["CET4","高频"]},
+{w:"avenue",p:"/ˈævənjuː/",m:"n. 大街；途径；方法",s:["They walked down the avenue.","We must explore every avenue."],r:"a-(去)+venue(来)→去来的路→大街",t:["CET4","高频"]},
+{w:"avoid",p:"/əˈvɔɪd/",m:"v. 避免；回避",s:["Try to avoid making mistakes.","He avoided answering the question."],r:"a-(出)+void(空)→走出去而留空→回避",t:["CET4","高频"]},
+{w:"award",p:"/əˈwɔːrd/",m:"v. 授予 n. 奖品；奖金",s:["She was awarded the Nobel Prize.","He won the best actor award."],r:"a-(去)+ward(守护)→去守护→给予→授予",t:["CET4","高频"]},
+{w:"aware",p:"/əˈweər/",m:"a. 意识到的；知道的",s:["Are you aware of the danger?","She became aware that something was wrong."],r:"",t:["CET4","高频"]},
+{w:"awful",p:"/ˈɔːfl/",m:"a. 可怕的；极坏的",s:["The weather was awful.","I feel awful about what happened."],r:"awe(敬畏)+ful→令人敬畏的→可怕的",t:["CET4","高频"]},
+{w:"barrier",p:"/ˈbæriər/",m:"n. 障碍；屏障",s:["Language can be a barrier to communication.","The river formed a natural barrier."],r:"bar(棒)+rier→用棒子挡住→障碍",t:["CET4","高频"]},
+{w:"beneath",p:"/bɪˈniːθ/",m:"prep. 在...之下",s:["The boat sank beneath the waves.","He sat beneath the tree."],r:"be-(在)+neath(下面)→在下面",t:["CET4","高频"]},
+{w:"benefit",p:"/ˈbenɪfɪt/",m:"n. 利益 v. 有益于；受益",s:["Exercise benefits your health.","He got great benefit from the course."],r:"bene(好)+fit(做)→做好事→利益",t:["CET4","高频"]},
+{w:"bound",p:"/baʊnd/",m:"a. 必然的；受约束的；前往",s:["It was bound to happen.","The plane is bound for London."],r:"bind(绑)的过去分词→被绑的→必然的",t:["CET4","高频"]},
+{w:"budget",p:"/ˈbʌdʒɪt/",m:"n. 预算 v. 做预算",s:["We need to keep within the budget.","You should budget your time wisely."],r:"",t:["CET4","高频"]},
+{w:"burden",p:"/ˈbɜːrdn/",m:"n. 负担 v. 使负重",s:["The tax burden is high.","I don't want to burden you with my problems."],r:"",t:["CET4","高频"]},
+{w:"campaign",p:"/kæmˈpeɪn/",m:"n. 运动；战役；竞选活动",s:["They launched a campaign against smoking.","The election campaign lasted months."],r:"camp(田野)+aign→在田野上→战役→运动",t:["CET4","高频"]},
+{w:"capable",p:"/ˈkeɪpəbl/",m:"a. 有能力的",s:["She is capable of doing the job alone.","He is a capable leader."],r:"cap(拿)+able→能拿住的→有能力的",t:["CET4","高频"]},
+{w:"capacity",p:"/kəˈpæsəti/",m:"n. 容量；能力；身份",s:["The hall has a capacity of 500.","She acted in her capacity as director."],r:"cap(拿)+acity→能拿住的量→容量；能力",t:["CET4","高频"]},
+{w:"career",p:"/kəˈrɪər/",m:"n. 职业；生涯；事业",s:["She chose a career in medicine.","His career spanned 40 years."],r:"",t:["CET4","高频"]},
+{w:"category",p:"/ˈkætəɡɔːri/",m:"n. 类别；种类",s:["This book falls into the category of fiction.","Please select a category."],r:"cata-(下)+gor(聚集)+y→聚集在下→分类",t:["CET4","高频"]},
+{w:"challenge",p:"/ˈtʃælɪndʒ/",m:"n./v. 挑战；质疑",s:["It's a real challenge to finish on time.","She challenged the decision."],r:"",t:["CET4","高频"]},
+{w:"characteristic",p:"/ˌkærəktəˈrɪstɪk/",m:"n. 特征 a. 典型的",s:["What are the characteristics of a good leader?","It's characteristic of him to be late."],r:"",t:["CET4","高频"]},
+{w:"circumstance",p:"/ˈsɜːrkəmstæns/",m:"n. 环境；情况",s:["Under the circumstances, we must be careful.","She adapted to her new circumstances."],r:"circum(周围)+stance(站)→周围站着的东西→环境",t:["CET4","高频"]},
+{w:"command",p:"/kəˈmænd/",m:"v./n. 命令；指挥；掌握",s:["The officer commanded his troops.","She has a good command of English."],r:"com-(加强)+mand(命令)→命令→指挥",t:["CET4","高频"]},
+{w:"comment",p:"/ˈkɒment/",m:"n./v. 评论；意见",s:["Do you have any comments on the plan?","He commented that it was interesting."],r:"com-(加强)+ment(心思)→用心思→评论",t:["CET4","高频"]},
+{w:"commission",p:"/kəˈmɪʃn/",m:"n. 委员会；佣金 v. 委托",s:["The commission will investigate.","He earned a 10% commission."],r:"com-(一起)+miss(送)+ion→一起送→委托→委员会",t:["CET4","高频"]},
+{w:"communicate",p:"/kəˈmjuːnɪkeɪt/",m:"v. 交流；沟通；传达",s:["We communicate by email.","He communicated his ideas clearly."],r:"com-(共同)+mun(服务)+icate→共同服务→交流",t:["CET4","高频"]},
+{w:"community",p:"/kəˈmjuːnəti/",m:"n. 社区；群体；团体",s:["The local community supported the plan.","Join our online community."],r:"com-(共同)+mun(服务)+ity→共同服务的地方→社区",t:["CET4","高频"]},
+{w:"compete",p:"/kəmˈpiːt/",m:"v. 竞争；比赛",s:["Ten teams competed for the prize.","We can't compete with their prices."],r:"com-(一起)+pete(追求)→一起追求→竞争",t:["CET4","高频"]},
+{w:"complex",p:"/ˈkɒmpleks/",m:"a. 复杂的 n. 综合体",s:["The problem is very complex.","He has an inferiority complex."],r:"com-(一起)+plex(折叠)→折叠在一起→复杂的",t:["CET4","高频"]},
+{w:"component",p:"/kəmˈpəʊnənt/",m:"n. 成分；部件 a. 组成的",s:["Each component must be tested.","Trust is a key component of relationships."],r:"com-(一起)+pon(放)+ent→放在一起→成分",t:["CET4","高频"]},
+{w:"concentrate",p:"/ˈkɒnsntreɪt/",m:"v. 集中；专注；浓缩",s:["I can't concentrate with all this noise.","Concentrate your efforts on this task."],r:"con-(一起)+centr(中心)+ate→到中心→集中",t:["CET4","高频"]},
+{w:"concept",p:"/ˈkɒnsept/",m:"n. 概念；观念",s:["The concept is difficult to understand.","She introduced a new concept."],r:"con-(一起)+cept(拿)→拿到一起→形成概念",t:["CET4","高频"]},
+{w:"concern",p:"/kənˈsɜːrn/",m:"v. 涉及；使关心 n. 关心；忧虑",s:["This matter concerns everyone.","Her main concern is her children."],r:"con-(一起)+cern(筛)→一起筛选→关心→涉及",t:["CET4","高频"]},
+{w:"conclude",p:"/kənˈkluːd/",m:"v. 得出结论；结束",s:["We concluded that he was right.","The meeting concluded at 5 pm."],r:"con-(一起)+clude(关)→一起关上→结束→得出结论",t:["CET4","高频"]},
+{w:"conduct",p:"/kənˈdʌkt/",m:"v. 实施；引导 n. 行为",s:["They conducted an experiment.","His conduct was unacceptable."],r:"con-(一起)+duct(引导)→一起引导→实施；行为",t:["CET4","高频"]},
+{w:"confident",p:"/ˈkɒnfɪdənt/",m:"a. 自信的；有信心的",s:["She is confident of success.","He gave a confident answer."],r:"con-(加强)+fid(信任)+ent→完全信任的→自信的",t:["CET4","高频"]},
+{w:"confirm",p:"/kənˈfɜːrm/",m:"v. 确认；证实；批准",s:["Can you confirm the reservation?","The experiment confirmed the theory."],r:"con-(加强)+firm(坚固)→使更坚固→确认",t:["CET4","高频"]},
+{w:"conscious",p:"/ˈkɒnʃəs/",m:"a. 有意识的；清醒的",s:["He was conscious of being watched.","The patient is fully conscious now."],r:"con-(加强)+sci(知道)+ous→知道→有意识的",t:["CET4","高频"]},
+{w:"consequence",p:"/ˈkɒnsɪkwəns/",m:"n. 结果；后果；重要性",s:["He suffered the consequences of his actions.","It's a matter of great consequence."],r:"con-(一起)+sequ(跟随)+ence→一起跟随而来→结果",t:["CET4","高频"]},
+{w:"conservative",p:"/kənˈsɜːrvətɪv/",m:"a. 保守的 n. 保守派",s:["He has a conservative approach to investing.","The conservatives opposed the reform."],r:"con-(加强)+serv(保存)+ative→保存→保守的",t:["CET4","高频"]},
+{w:"considerable",p:"/kənˈsɪdərəbl/",m:"a. 相当大的；可观的",s:["A considerable amount of work remains.","He made a considerable fortune."],r:"",t:["CET4","高频"]},
+{w:"consist",p:"/kənˈsɪst/",m:"v. 由...组成(consist of)；在于(consist in)",s:["The team consists of five members.","Happiness consists in contentment."],r:"con-(一起)+sist(站)→站在一起→组成",t:["CET4","高频"]},
+{w:"constant",p:"/ˈkɒnstənt/",m:"a. 持续的；不变的 n. 常数",s:["She is in constant pain.","The speed of light is a constant."],r:"con-(加强)+stant(站)→一直站着→不变的",t:["CET4","高频"]},
+{w:"construct",p:"/kənˈstrʌkt/",m:"v. 建造；构建 n. 构想",s:["They constructed a new bridge.","The theory is a social construct."],r:"con-(一起)+struct(建造)→一起建造→构建",t:["CET4","高频"]},
+{w:"consume",p:"/kənˈsjuːm/",m:"v. 消耗；消费；吃完",s:["The fire consumed the building.","We consume a lot of energy each day."],r:"con-(完全)+sume(拿)→完全拿走→消耗",t:["CET4","高频"]},
+{w:"contact",p:"/ˈkɒntækt/",m:"n./v. 联系；接触",s:["Please contact us for more information.","Keep in contact with your friends."],r:"con-(一起)+tact(触摸)→一起触摸→接触",t:["CET4","高频"]},
+{w:"contain",p:"/kənˈteɪn/",m:"v. 包含；容纳；控制",s:["The box contains old photos.","I couldn't contain my excitement."],r:"con-(一起)+tain(握住)→握在一起→包含",t:["CET4","高频"]},
+{w:"contemporary",p:"/kənˈtemprəri/",m:"a. 当代的；同时代的",s:["She studies contemporary art.","Shakespeare was contemporary with Marlowe."],r:"con-(同)+tempor(时间)+ary→同时间的→同时代的",t:["CET4","高频"]},
+{w:"contribute",p:"/kənˈtrɪbjuːt/",m:"v. 贡献；捐献；投稿",s:["Everyone should contribute to society.","He contributed an article to the magazine."],r:"con-(一起)+tribute(给予)→一起给予→贡献",t:["CET4","高频"]},
+{w:"convenient",p:"/kənˈviːniənt/",m:"a. 方便的；便利的",s:["Is tomorrow a convenient time for you?","The hotel is in a convenient location."],r:"con-(一起)+veni(来)+ent→一起来→方便的",t:["CET4","高频"]},
+{w:"convince",p:"/kənˈvɪns/",m:"v. 使确信；说服",s:["He convinced me to go with him.","I'm convinced that she is right."],r:"con-(完全)+vince(征服)→完全征服→说服",t:["CET4","高频"]},
+{w:"cooperate",p:"/kəʊˈɒpəreɪt/",m:"v. 合作；协作",s:["The two companies cooperated on the project.","Please cooperate with the police."],r:"co-(共同)+oper(工作)+ate→一起工作→合作",t:["CET4","高频"]},
+{w:"coordinate",p:"/kəʊˈɔːrdɪneɪt/",m:"v. 协调 n. 坐标",s:["She coordinates the team's activities.","We need to coordinate our efforts."],r:"co-(共同)+ordin(顺序)+ate→使共同有序→协调",t:["CET4","高频"]},
+{w:"cope",p:"/kəʊp/",m:"v. 应对；处理；应付",s:["She can cope with any problem.","I can't cope with all this work."],r:"",t:["CET4","高频"]},
+{w:"correspond",p:"/ˌkɒrəˈspɒnd/",m:"v. 对应；相符；通信",s:["His actions don't correspond with his words.","We corresponded by email for years."],r:"cor-(共同)+respond(回答)→共同回答→对应",t:["CET4","高频"]},
+{w:"critical",p:"/ˈkrɪtɪkl/",m:"a. 批评的；关键的；危急的",s:["She is always critical of my work.","This is a critical decision."],r:"crit(判断)+ical→判断的→批评的；关键的",t:["CET4","高频"]},
+{w:"crucial",p:"/ˈkruːʃl/",m:"a. 至关重要的；决定性的",s:["This is a crucial moment in history.","Timing is crucial for success."],r:"cruc(十字)+ial→十字路口的→决定性的",t:["CET4","高频"]},
+{w:"cultivate",p:"/ˈkʌltɪveɪt/",m:"v. 培养；耕种；建立(关系)",s:["She cultivated a love of music.","Farmers cultivate the land."],r:"cult(耕种)+ivate→耕种→培养",t:["CET4","高频"]},
+{w:"debate",p:"/dɪˈbeɪt/",m:"n./v. 辩论；争论；讨论",s:["They debated for hours.","The issue is under debate."],r:"de-(下)+bate(打)→打下去→辩论",t:["CET4","高频"]},
+{w:"decline",p:"/dɪˈklaɪn/",m:"v./n. 下降；衰退；谢绝",s:["Sales have declined sharply.","He declined my invitation politely."],r:"de-(下)+cline(倾斜)→向下倾斜→下降",t:["CET4","高频"]},
+{w:"definitely",p:"/ˈdefɪnətli/",m:"ad. 肯定地；明确地",s:["I'll definitely be there.","That's definitely not true."],r:"",t:["CET4","高频"]}
+];
+
+// ============================================================
+// DATA STORE
+// ============================================================
+function loadUser(){
+  try{return JSON.parse(localStorage.vocabapp||'{"words":[],"streak":0,"lastStudyDate":"","dailyNewLimit":20}')}
+  catch(e){return{words:[],streak:0,lastStudyDate:"",dailyNewLimit:20}}
+}
+function saveUser(d){localStorage.vocabapp=JSON.stringify(d)}
+function initWords(){
+  var u=loadUser();if(u.words.length>0)return;
+  var now=Date.now();
+  CET4_WORDS.forEach(function(w,i){
+    u.words.push({
+      id:'c4_'+i,word:w.w,phonetic:w.p,meaning:w.m,
+      sentences:w.s||[],root:wr||'',tags:wt||['CET4'],
+      ease:2.5,interval:1,nextReview:now,totalReviews:0,correctCount:0,status:'new',createdAt:now
+    });
+  });
+  saveUser(u);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function goScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});document.getElementById(id).classList.add('active')}
+function showModal(id){document.getElementById(id).classList.add('show')}
+function hideModal(id){document.getElementById(id).classList.remove('show')}
+function today(){return new Date().toDateString()}
+function daysBetween(t1,t2){return Math.floor((t2-t1)/(86400000))}
+
+// ============================================================
+// SM-2 ALGORITHM
+// ============================================================
+function sm2(word, rating){
+  if(rating==='again'){
+    word.interval=1;word.ease=Math.max(1.3,word.ease-0.2);word.status='learning';
+  }else{
+    if(word.interval===1){word.interval=word.status==='new'?1:3}
+    else{word.interval=Math.round(word.interval*word.ease)}
+    word.ease=Math.min(2.5,word.ease+0.1);
+    if(word.interval>=21&&word.ease>=2.3)word.status='mastered';
+    else if(word.interval>=7)word.status='review';
+    else word.status='learning';
+  }
+  word.nextReview=Date.now()+word.interval*86400000;
+  word.totalReviews=(word.totalReviews||0)+1;
+  if(rating==='good')word.correctCount=(word.correctCount||0)+1;
+  if(word.status==='new')word.status='learning';
+}
+
+// ============================================================
+// HOME
+// ============================================================
+function renderHome(){
+  var u=loadUser();var w=u.words;var now=Date.now();
+  var due=w.filter(function(x){return x.nextReview<=now}).length;
+  var totalReviewed=w.filter(function(x){return x.totalReviews>0}).length;
+  var mastered=w.filter(function(x){return x.status==='mastered'}).length;
+  var todayDone=w.filter(function(x){return new Date(x.nextReview).toDateString()>today()}).length;
+
+  document.getElementById('homeDue').textContent=due;
+  document.getElementById('homeStreak').textContent=u.streak||0;
+  document.getElementById('homePct').textContent='已掌握 '+mastered+' · 学习中 '+(w.length-mastered);
+}
+renderHome();renderHome=renderHome; // replace later
+
+// ============================================================
+// FLASHCARD SESSION
+// ============================================================
+var _session=[],_sIdx=0,_sFlipped=false,_sDone=0,_sTotal=0,_sType='';
+
+function startReview(){
+  var u=loadUser();var now=Date.now();
+  _session=u.words.filter(function(x){return x.nextReview<=now});
+  if(_session.length===0){alert('没有待复习的单词！');return}
+  _startSession('复习');
+}
+function startNewWords(){
+  var u=loadUser();
+  var newWords=u.words.filter(function(x){return x.status==='new'});
+  if(newWords.length===0){alert('没有新单词了！试试导入更多词库');return}
+  var limit=u.dailyNewLimit||20;
+  _session=newWords.slice(0,limit);
+  _startSession('学习新词');
+}
+function _startSession(type){
+  _sIdx=0;_sFlipped=false;_sDone=0;_sTotal=_session.length;_sType=type;
+  document.getElementById('flashTitle').textContent=type;
+  goScreen('sFlash');renderFlash();
+}
+
+function renderFlash(){
+  if(_sIdx>=_session.length){finishSession();return}
+  var w=_session[_sIdx];_sFlipped=false;
+  var pct=Math.round(_sDone/_sTotal*100);
+  document.getElementById('flashProgress').style.width=pct+'%';
+  document.getElementById('flashCount').textContent=(_sIdx+1)+' / '+_sTotal;
+
+  var h='';
+  h+='<div class="flash-card" id="flashCard" onclick="flipCard()">';
+  h+='<div class="word">'+fmt(w.word)+'</div>';
+  h+='<div class="phonetic">'+fmt(w.phonetic)+'</div>';
+  h+='<div id="flashBack" style="display:none">';
+  h+='<div class="meaning">'+fmt(w.meaning)+'</div>';
+  if(w.sentences&&w.sentences.length>0)h+='<div class="sentences">'+w.sentences.map(function(s){return '"'+fmt(s)+'"'}).join('<br>')+'</div>';
+  if(w.root)h+='<div class="root-info">'+fmt(w.root)+'</div>';
+  h+='</div>';
+  h+='<div class="tap-hint" id="flashHint">👆 点击翻转查看释义</div>';
+  h+='</div>';
+  h+='<div style="text-align:center"><button class="speak-btn" onclick="event.stopPropagation();speak(\''+w.word.replace(/'/g,"\\'")+'\')">🔊</button></div>';
+  h+='<div class="col" style="padding:0 12px;margin-top:16px">';
+  h+='<button class="btn btn-red" id="btnAgain" style="display:none" onclick="rateCard(\'again\')">❌ 不认识</button>';
+  h+='<button class="btn btn-green" id="btnGood" style="display:none" onclick="rateCard(\'good\')">✅ 认识</button>';
+  h+='</div>';
+
+  document.getElementById('flashArea').innerHTML=h;
+}
+
+function flipCard(){
+  if(_sFlipped)return;_sFlipped=true;
+  document.getElementById('flashBack').style.display='block';
+  document.getElementById('flashHint').style.display='none';
+  document.getElementById('btnAgain').style.display='block';
+  document.getElementById('btnGood').style.display='block';
+}
+
+function speak(text){
+  if(window.speechSynthesis){
+    var u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.8;
+    window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+  }
+}
+
+function rateCard(rating){
+  var w=_session[_sIdx];
+  sm2(w,rating);
+  if(rating==='good')_sDone++;
+  var u=loadUser();var uw=u.words.find(function(x){return x.id===w.id});if(uw)Object.assign(uw,w);
+  saveUser(u);
+  _sIdx++;_sFlipped=false;
+  if(_sIdx>=_session.length){finishSession()}else{renderFlash()}
+}
+
+function finishSession(){
+  var u=loadUser();
+  if(u.lastStudyDate!==today()){u.streak=(u.streak||0)+1;u.lastStudyDate=today()}
+  else if(!u.lastStudyDate){u.streak=1;u.lastStudyDate=today()}
+  saveUser(u);
+  alert('🎉 完成！\n'+(_sType==='复习'?'复习':'学习')+'了 '+_sTotal+' 个单词\n今日连续打卡第 '+u.streak+' 天');
+  goScreen('sHome');renderHome();
+}
+
+function endSession(){
+  var u=loadUser();
+  if(u.lastStudyDate!==today()){u.streak=(u.streak||0)+1;u.lastStudyDate=today();saveUser(u)}
+  goScreen('sHome');renderHome();
+}
+
+// ============================================================
+// MULTIPLE CHOICE MODE
+// ============================================================
+var _qz=[],_qzIdx=0,_qzDone=false,_qzOk=0,_qzTotal=0;
+
+function renderQuiz(){
+  var u=loadUser();var now=Date.now();
+  _qz=u.words.filter(function(x){return x.nextReview<=now||x.status==='new'||x.totalReviews===0});
+  if(_qz.length<4){alert('至少需要4个单词才能做选择题');goScreen('sHome');return}
+  _qzIdx=0;_qzDone=false;_qzOk=0;_qzTotal=Math.min(_qz.length,20);
+  _qz=_qz.slice(0,_qzTotal);
+  renderQzQ();
+}
+
+function renderQzQ(){
+  if(_qzIdx>=_qzTotal){finishQz();return}
+  var q=_qz[_qzIdx];_qzDone=false;
+  document.getElementById('quizPBar').style.width=Math.round(_qzIdx/_qzTotal*100)+'%';
+  document.getElementById('quizCount').textContent=(_qzIdx+1)+' / '+_qzTotal;
+
+  // Pick 3 distractors
+  var others=_qz.filter(function(x){return x.id!==q.id}).sort(function(){return Math.random()-.5}).slice(0,3);
+  var opts=[q].concat(others).sort(function(){return Math.random()-.5});
+
+  var labels=['A','B','C','D'];
+  var h='<div style="text-align:center;padding:16px 0">';
+  h+='<div style="font-size:32px;font-weight:700;color:var(--pri);margin-bottom:8px">'+fmt(q.word)+'</div>';
+  h+='<button class="speak-btn" onclick="speak(\''+q.word.replace(/'/g,"\\'")+'\')">🔊</button>';
+  h+='</div><div style="font-size:14px;color:var(--sub);text-align:center;margin-bottom:8px">选择一个正确的释义</div>';
+
+  opts.forEach(function(o,i){
+    h+='<div class="opt-btn" id="qzOpt'+i+'" onclick="pickQz('+i+',\''+o.id+'\')"><span class="opt-letter">'+labels[i]+'</span> '+fmt(o.meaning)+'</div>';
+  });
+
+  document.getElementById('quizArea').innerHTML=h;
+  window._qzCorrectId=q.id;
+}
+
+function pickQz(i,oid){
+  if(_qzDone)return;
+  _qzDone=true;_qzTotal++;
+  var isOk=(oid===window._qzCorrectId);
+  if(isOk)_qzOk++;
+
+  var q=_qz[_qzIdx];
+  sm2(q,isOk?'good':'again');
+  var u=loadUser();var uw=u.words.find(function(x){return x.id===q.id});if(uw)Object.assign(uw,q);saveUser(u);
+
+  for(var j=0;j<4;j++){
+    var el=document.getElementById('qzOpt'+j);if(!el)continue;
+    el.style.pointerEvents='none';
+    if(j===i)el.classList.add(isOk?'correct':'wrong');
+  }
+
+  setTimeout(function(){_qzIdx++;renderQzQ()},isOk?800:1500);
+}
+
+function finishQz(){
+  var r=_qzTotal>0?Math.round(_qzOk/_qzTotal*100):0;
+  var u=loadUser();
+  if(u.lastStudyDate!==today()){u.streak=(u.streak||0)+1;u.lastStudyDate=today();saveUser(u)}
+  alert('选择题完成！\n正确率: '+r+'% ('+_qzOk+'/'+_qzTotal+')');
+  goScreen('sHome');renderHome();
+}
+
+// ============================================================
+// DECK MANAGEMENT
+// ============================================================
+function renderDeck(){
+  var u=loadUser();var w=u.words;
+  var newC=w.filter(function(x){return x.status==='new'}).length;
+  var learnC=w.filter(function(x){return x.status==='learning'}).length;
+  var revC=w.filter(function(x){return x.status==='review'}).length;
+  var mastC=w.filter(function(x){return x.status==='mastered'}).length;
+
+  var h='<div style="margin-bottom:8px">';
+  h+='<span class="tag tag-new">新词 '+newC+'</span> ';
+  h+='<span class="tag tag-learn">学习中 '+learnC+'</span> ';
+  h+='<span class="tag tag-review">复习中 '+revC+'</span> ';
+  h+='<span class="tag tag-done">已掌握 '+mastC+'</span>';
+  h+='</div>';
+  h+='<div style="margin-bottom:12px">';
+  h+='<button class="btn btn-sm btn-out" onclick="showModal(\'mdImport\')" style="margin-right:8px">📥 导入</button>';
+  h+='<button class="btn btn-sm btn-out" onclick="showAddWord()">+ 添加</button>';
+  h+='<input style="margin-top:8px" placeholder="搜索单词..." oninput="filterDeck(this.value)">';
+  h+='</div><div id="deckList">';
+  var sorted=w.slice().sort(function(a,b){return a.word.localeCompare(b.word)});
+  sorted.forEach(function(x){
+    var tag='';if(x.status==='new')tag='tag-new';else if(x.status==='learning')tag='tag-learn';else if(x.status==='review')tag='tag-review';else tag='tag-done';
+    h+='<div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:8px" onclick="editWord(\''+x.id+'\')">';
+    h+='<b>'+fmt(x.word)+'</b> <span style="font-size:12px;color:var(--sub)">'+fmt(x.meaning)+'</span>';
+    h+='<span style="flex:1"></span><span class="tag '+tag+'">'+(x.status==='new'?'新':x.status==='learning'?'学':x.status==='review'?'复':'✔')+'</span>';
+    h+='</div>';
+  });
+  h+='</div>';
+  document.getElementById('deckArea').innerHTML=h;
+}
+
+function filterDeck(q){
+  var u=loadUser();var w=u.words.filter(function(x){return x.word.toLowerCase().indexOf(q.toLowerCase())>=0||x.meaning.indexOf(q)>=0});
+  w.sort(function(a,b){return a.word.localeCompare(b.word)});
+  var h='';
+  w.forEach(function(x){
+    var tag='';if(x.status==='new')tag='tag-new';else if(x.status==='learning')tag='tag-learn';else if(x.status==='review')tag='tag-review';else tag='tag-done';
+    h+='<div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:8px" onclick="editWord(\''+x.id+'\')">';
+    h+='<b>'+fmt(x.word)+'</b> <span style="font-size:12px;color:var(--sub)">'+fmt(x.meaning)+'</span>';
+    h+='<span style="flex:1"></span><span class="tag '+tag+'">'+(x.status==='new'?'新':x.status==='learning'?'学':x.status==='review'?'复':'✔')+'</span>';
+    h+='</div>';
+  });
+  document.getElementById('deckList').innerHTML=h||'<div style="text-align:center;padding:20px;color:var(--sub)">无匹配单词</div>';
+}
+
+var _editWid=null;
+function showAddWord(){_editWid=null;document.getElementById('mdWordTitle').textContent='添加单词';
+  document.getElementById('fwWord').value='';document.getElementById('fwPhonetic').value='';
+  document.getElementById('fwMeaning').value='';document.getElementById('fwSentences').value='';
+  document.getElementById('fwRoot').value='';
+  document.querySelectorAll('#fwTags .chip').forEach(function(c){c.classList.toggle('on',c.dataset.t==='CET4')});
+  showModal('mdWord');
+}
+function editWord(wid){
+  var u=loadUser();var w=u.words.find(function(x){return x.id===wid});if(!w)return;
+  _editWid=wid;document.getElementById('mdWordTitle').textContent='编辑单词';
+  document.getElementById('fwWord').value=w.word;document.getElementById('fwPhonetic').value=w.phonetic;
+  document.getElementById('fwMeaning').value=w.meaning;document.getElementById('fwSentences').value=(w.sentences||[]).join('\n');
+  document.getElementById('fwRoot').value=w.root||'';
+  document.querySelectorAll('#fwTags .chip').forEach(function(c){c.classList.toggle('on',(w.tags||[]).indexOf(c.dataset.t)>=0)});
+  showModal('mdWord');
+}
+function doSaveWord(){
+  var word=document.getElementById('fwWord').value.trim();if(!word){alert('请输入单词');return}
+  var meaning=document.getElementById('fwMeaning').value.trim();if(!meaning){alert('请输入释义');return}
+  var tags=[];document.querySelectorAll('#fwTags .chip.on').forEach(function(c){tags.push(c.dataset.t)});
+  var obj={
+    id:_editWid||('u_'+Date.now()),word:word,phonetic:document.getElementById('fwPhonetic').value,meaning:meaning,
+    sentences:document.getElementById('fwSentences').value.split('\n').filter(Boolean),
+    root:document.getElementById('fwRoot').value,tags:tags,
+    ease:2.5,interval:1,nextReview:Date.now(),totalReviews:0,correctCount:0,status:'new',createdAt:Date.now()
+  };
+  var u=loadUser();
+  if(_editWid){var idx=u.words.findIndex(function(x){return x.id===_editWid});if(idx>=0){var old=u.words[idx];obj.ease=old.ease;obj.interval=old.interval;obj.nextReview=old.nextReview;obj.totalReviews=old.totalReviews;obj.correctCount=old.correctCount;obj.status=old.status;u.words[idx]=obj}}
+  else{u.words.push(obj)}
+  saveUser(u);hideModal('mdWord');renderDeck();renderHome();
+}
+
+// ============================================================
+// IMPORT
+// ============================================================
+function doImport(){
+  var text=document.getElementById('importText').value.trim();if(!text)return;
+  var lines=text.split('\n');var added=0;
+  var u=loadUser();
+  lines.forEach(function(line){
+    var parts=line.split('|');if(parts.length<2)return;
+    var word=parts[0].trim(),phonetic=(parts[1]||'').trim(),meaning=(parts[2]||'').trim();
+    var sentences=(parts[3]||'').split('；').filter(Boolean).map(function(s){return s.trim()});
+    var root=(parts[4]||'').trim();
+    if(!word||!meaning)return;
+    u.words.push({id:'i_'+Date.now()+'_'+added,word:word,phonetic:phonetic,meaning:meaning,sentences:sentences,root:root,tags:['CET4'],ease:2.5,interval:1,nextReview:Date.now(),totalReviews:0,correctCount:0,status:'new',createdAt:Date.now()});
+    added++;
+  });
+  saveUser(u);hideModal('mdImport');renderDeck();renderHome();
+  alert('导入完成：'+added+' 个单词');
+}
+document.getElementById('importFile').addEventListener('change',function(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();reader.onload=function(ev){document.getElementById('importText').value=ev.target.result}
+  reader.readAsText(file);
+});
+
+// ============================================================
+// STATS
+// ============================================================
+function renderStats(){
+  var u=loadUser();var w=u.words;var now=Date.now();
+  var mastered=w.filter(function(x){return x.status==='mastered'}).length;
+  var due=w.filter(function(x){return x.nextReview<=now}).length;
+  var totalReviewed=w.filter(function(x){return x.totalReviews>0}).length;
+  var totalReviews=w.reduce(function(a,x){return a+(x.totalReviews||0)},0);
+
+  // last 7 days trend
+  var days=[];for(var i=6;i>=0;i--){var d=new Date(now-i*86400000);days.push({label:(d.getMonth()+1)+'/'+d.getDate(),date:d.toDateString()})}
+  var trend=days.map(function(d){
+    return w.filter(function(x){return new Date(x.nextReview).toDateString()>=d.date&&x.totalReviews>0}).length;
+  });
+
+  var h='<div class="card"><div class="stat-num">'+totalReviewed+'</div><div class="stat-label">已学习单词</div></div>';
+  h+='<div style="display:flex;gap:8px;padding:0 12px">';
+  h+='<div class="card" style="flex:1;text-align:center"><div style="font-size:32px;font-weight:700;color:var(--green)">'+mastered+'</div><div style="font-size:12px;color:var(--sub)">已掌握</div></div>';
+  h+='<div class="card" style="flex:1;text-align:center"><div style="font-size:32px;font-weight:700;color:var(--red)">'+due+'</div><div style="font-size:12px;color:var(--sub)">待复习</div></div>';
+  h+='</div>';
+  h+='<div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:8px">最近7天</div><div style="display:flex;align-items:flex-end;gap:4px;height:80px">';
+  var max=Math.max.apply(null,trend.concat([1]));
+  trend.forEach(function(v,i){
+    var hh=Math.round(v/max*60);
+    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end">';
+    h+='<div style="font-size:10px;margin-bottom:2px">'+v+'</div>';
+    h+='<div style="width:100%;max-width:30px;height:'+Math.max(hh,2)+'px;background:var(--pri);border-radius:4px 4px 0 0"></div>';
+    h+='<div style="font-size:10px;color:var(--sub);margin-top:4px">'+days[i].label+'</div></div>';
+  });
+  h+='</div></div>';
+  h+='<div class="card"><div style="font-size:13px;color:var(--sub)">累计复习次数：'+totalReviews+' 次</div>';
+  h+='<div style="font-size:13px;color:var(--sub)">连续打卡：'+((u.streak)||0)+' 天</div></div>';
+
+  document.getElementById('statsArea').innerHTML=h;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+initWords();
+renderHome();
+
+// Update streak on load
+(function(){
+  var u=loadUser();var now=Date.now();
+  if(u.lastStudyDate){
+    var last=new Date(u.lastStudyDate);var todayD=new Date(today());
+    var diff=daysBetween(last.getTime(),todayD.getTime());
+    if(diff>1){u.streak=0}
+  }
+  saveUser(u);
+  renderHome();
+})();
+</script>
+</body>
+</html>
