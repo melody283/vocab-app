@@ -321,7 +321,7 @@ function initWords(){
   CET4_WORDS.forEach(function(w,i){
     u.words.push({
       id:'c4_'+i,word:w.w,phonetic:w.p,meaning:w.m,
-      sentences:w.s||[],root:wr||'',tags:wt||['CET4'],
+      sentences:w.s||[],root:w.r||'',tags:w.t||['CET4'],
       ease:2.5,interval:1,nextReview:now,totalReviews:0,correctCount:0,status:'new',createdAt:now
     });
   });
